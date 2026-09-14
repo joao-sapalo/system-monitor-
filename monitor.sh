@@ -140,7 +140,7 @@ executar_verificacao_memoria() {
     fi
 
     # Limpar memoria se ultrapassar o limite de limpeza
-    if (( uso > MEM_LIMPAR )); then
+    if (( uso >= MEM_LIMPAR )); then
         registrar "INFO" "Memoria acima de ${MEM_LIMPAR}% - a iniciar limpeza..."
         local antes="${uso}"
         verificar_e_limpar_memoria

@@ -51,7 +51,7 @@ limpar_memoria() {
 
     uso_antes=$(verificar_memoria)
 
-    echo "A limpar memoria... (uso antes: ${uso_antes}%)"
+    registrar "INFO" "A limpar memoria... (uso antes: ${uso_antes}%)"
 
     # Passo 1: Sincronizar dados pendentes para disco
     _sincronizar_dados
@@ -70,11 +70,11 @@ limpar_memoria() {
     # Calcular diferenca
     local libertado=$(( uso_antes - uso_depois ))
 
-    echo "Limpeza concluida. Uso depois: ${uso_depois}% (libertados ~${libertado}%)"
-
-    # Mostrar top 5 processos a consumir mais memoria
-    echo "Top processos por uso de memoria:"
-    _top_processos_memoria
+    registrar "INFO" "Limpeza concluida: ${uso_antes}% -> ${uso_depois}% (libertados ~${libertado}%)"
+    registrar "INFO" "Top processos por uso de memoria:"
+    ps aux --sort=-%mem 2>/dev/null | head -6 | tail -5 | while IFS= read -r linha; do
+        registrar "INFO" "  ${linha}"
+    done
 
     return 0
 }
@@ -85,7 +85,7 @@ verificar_e_limpar_memoria() {
     local uso
     uso=$(verificar_memoria)
 
-    if (( uso > MEM_LIMPAR )); then
+    if (( uso >= MEM_LIMPAR )); then
         registrar "ALERTA" "Uso de memoria (${uso}%) ultrapassa limite de limpeza (${MEM_LIMPAR}%). A iniciar limpeza..."
         limpar_memoria
         return $?
