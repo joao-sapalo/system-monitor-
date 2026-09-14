@@ -1,0 +1,14 @@
+# Logs
+logs/monitor.log
+logs/monitor.log.*
+
+# Configuracao local (com tokens/chaves secretas)
+# Descomentar para ignorar config.conf no repositorio:
+# config.conf
+
+# Arquivos de sistema
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
