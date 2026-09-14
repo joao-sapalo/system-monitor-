@@ -1,8 +1,58 @@
 #!/bin/bash
 # =============================================================================
 # Modulo de Notificacao (Alertas)
-# Envia mensagens via Telegram e/ou email, consoante a configuracao.
+# Envia alertas via desktop, som, Telegram e/ou email.
 # =============================================================================
+
+# Envia notificacao desktop via notify-send (popup no ecrã).
+# Argumento: $1 = titulo, $2 = mensagem
+_notificar_desktop() {
+    local titulo="$1"
+    local mensagem="$2"
+
+    if [[ "${NOTIFICAR_DESKTOP}" != "true" ]]; then
+        return 0
+    fi
+
+    if ! command -v notify-send &>/dev/null; then
+        return 1
+    fi
+
+    notify-send -u critical -i dialog-warning "${titulo}" "${mensagem}" 2>/dev/null
+    return $?
+}
+
+# Emite alerta sonoro via speaker ou aplay.
+# Argumento: $1 = titulo (opcional, para contexto)
+_notificar_som() {
+    local titulo="${1:-Alerta}"
+
+    if [[ "${NOTIFICAR_SOM}" != "true" ]]; then
+        return 0
+    fi
+
+    # Tentar aplay com ficheiro de som do sistema
+    if command -v aplay &>/dev/null; then
+        local sons=("/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"
+                    "/usr/share/sounds/freedesktop/stereo/complete.oga"
+                    "/usr/share/sounds/freedesktop/stereo/bell.oga"
+                    "/usr/share/sounds/sound-icons/attention.wav")
+        for som in "${sons[@]}"; do
+            if [[ -f "${som}" ]]; then
+                aplay -q "${som}" 2>/dev/null &
+                return 0
+            fi
+        done
+    fi
+
+    # Fallback: beep via /dev/video0 (se disponivel) ou terminal bell
+    if command -v beep &>/dev/null; then
+        beep -f 800 -l 200 -n 200 -f 1000 -l 200 2>/dev/null &
+    else
+        printf '\a'  # Terminal bell
+    fi
+    return 0
+}
 
 # Envia notificacao via Telegram Bot API.
 # Argumento: $1 = mensagem a enviar
@@ -78,8 +128,12 @@ notificar() {
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
 
-    local corpo_completo="[${hostname}] ${timestamp}\n\n${titulo}\n${mensagem}"
+    # Notificacoes locais (instantaneas, sem redes sociais)
+    _notificar_desktop "${titulo}" "${mensagem}" >/dev/null
+    _notificar_som "${titulo}" >/dev/null
 
+    # Notificacoes externas (configuraveis)
+    local corpo_completo="[${hostname}] ${timestamp}\n\n${titulo}\n${mensagem}"
     _enviar_telegram "<b>${titulo}</b>\n\n${mensagem}\n\n<i>Host: ${hostname} | ${timestamp}</i>" >/dev/null
     _enviar_email "[Monitor] ${titulo}" "${corpo_completo}" >/dev/null
 }

@@ -22,7 +22,7 @@ source "${SCRIPT_DIR}/config.conf"
 mkdir -p "${SCRIPT_DIR}/${LOG_DIR}"
 
 # --- Carregar modulos ---
-for modulo in cpu memoria disco servicos; do
+for modulo in cpu memoria disco servicos limpeza; do
     if [[ ! -f "${LIB_DIR}/${modulo}.sh" ]]; then
         echo "ERRO: modulo ${LIB_DIR}/${modulo}.sh nao encontrado" >&2
         exit 1
@@ -137,6 +137,16 @@ executar_verificacao_memoria() {
         local msg="Uso de memoria elevado: ${uso}% (limite: ${MEM_MAX}%)"
         registrar "ALERTA" "${msg}"
         notificar "Alerta de Memoria" "${msg}"
+    fi
+
+    # Limpar memoria se ultrapassar o limite de limpeza
+    if (( uso > MEM_LIMPAR )); then
+        registrar "INFO" "Memoria acima de ${MEM_LIMPAR}% - a iniciar limpeza..."
+        local antes="${uso}"
+        verificar_e_limpar_memoria
+        local depois
+        depois=$(verificar_memoria)
+        registrar "INFO" "Limpeza concluida: ${antes}% -> ${depois}%"
     fi
 }
 
